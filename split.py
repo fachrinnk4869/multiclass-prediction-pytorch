@@ -13,12 +13,13 @@ def split_dataset(original_dir, train_dir, valid_dir, valid_ratio=0.2):
     - valid_dir: Directory to save the validation dataset.
     - valid_ratio: Fraction of data to use for validation.
     """
+    listdir = os.listdir(original_dir)
     # Create training and validation directories if they don't exist
     os.makedirs(train_dir, exist_ok=True)
     os.makedirs(valid_dir, exist_ok=True)
 
     # Loop through each class folder in the original directory
-    for class_name in os.listdir(original_dir):
+    for class_name in listdir:
         class_path = os.path.join(original_dir, class_name)
 
         # Check if it's a directory (to ensure it's a class folder)
@@ -38,10 +39,10 @@ def split_dataset(original_dir, train_dir, valid_dir, valid_ratio=0.2):
 
             # Move images to their respective folders
             for image in train_images:
-                shutil.move(os.path.join(class_path, image),
+                shutil.copy(os.path.join(class_path, image),
                             os.path.join(train_dir, class_name, image))
             for image in valid_images:
-                shutil.move(os.path.join(class_path, image),
+                shutil.copy(os.path.join(class_path, image),
                             os.path.join(valid_dir, class_name, image))
 
     print("Dataset has been split into training and validation sets.")
@@ -50,11 +51,11 @@ def split_dataset(original_dir, train_dir, valid_dir, valid_ratio=0.2):
 # Example usage
 
 # Update with your original dataset path
-original_dataset_dir = 'dataset'
+original_dataset_dir = 'fix_data'
 # Desired path for training dataset
-train_dataset_dir = 'train'
+train_dataset_dir = os.path.join(original_dataset_dir, 'train')
 # Desired path for validation dataset
-valid_dataset_dir = 'validate'
+valid_dataset_dir = os.path.join(original_dataset_dir, 'validate')
 
 split_dataset(original_dataset_dir, train_dataset_dir,
               valid_dataset_dir, valid_ratio=0.2)

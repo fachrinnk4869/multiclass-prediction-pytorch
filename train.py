@@ -5,7 +5,9 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
 from model import TestModel
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
+import numpy as np
 
 # Define transforms for the training and validation datasets
 transform = transforms.Compose([
@@ -14,11 +16,11 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize
 ])
 
-# Load datasets (replace 'path_to_train_data' and 'path_to_valid_data' with your dataset paths)
+# Load datasets
 train_dataset = datasets.ImageFolder(
-    root='train', transform=transform)
+    root='fix_data/train', transform=transform)
 val_dataset = datasets.ImageFolder(
-    root='validate', transform=transform)
+    root='fix_data/validate', transform=transform)
 
 # Create data loaders
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
@@ -31,13 +33,11 @@ model = TestModel(num_classes)
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Function to calculate accuracy
+# Function to calculate accuracy and return predictions and labels
 
 
-def calculate_accuracy(model, data_loader, device):
+def evaluate_model(model, data_loader, device):
     model.eval()  # Set the model to evaluation mode
-    correct = 0
-    total = 0
     all_preds = []
     all_labels = []
     with torch.no_grad():
@@ -45,18 +45,31 @@ def calculate_accuracy(model, data_loader, device):
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
     accuracy = accuracy_score(all_labels, all_preds)
-    return accuracy
+    return accuracy, np.array(all_preds), np.array(all_labels)
+
+# Function to save confusion matrix
+
+
+def save_confusion_matrix(true_labels, pred_labels, class_names, filename):
+    cm = confusion_matrix(true_labels, pred_labels)
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm, display_labels=class_names)
+    disp.plot(cmap=plt.cm.Blues)
+    plt.title(f'Confusion Matrix: {filename}')
+    plt.savefig(f'{filename}.png')
+    plt.close()
 
 # Training function
 
 
 def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10, device='cpu'):
+    train_loss_history = []
+    val_loss_history = []
+
     for epoch in range(num_epochs):
         model.train()  # Set the model to training mode
         running_loss = 0.0
@@ -74,15 +87,45 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10, 
 
             running_loss += loss.item()
 
-        # Calculate training accuracy
-        train_accuracy = calculate_accuracy(model, train_loader, device)
-        # Calculate validation accuracy
-        val_accuracy = calculate_accuracy(model, val_loader, device)
+        # Calculate training accuracy, loss, and confusion matrix
+        train_accuracy, train_preds, train_labels = evaluate_model(
+            model, train_loader, device)
+        train_loss = running_loss / len(train_loader)
+        train_loss_history.append(train_loss)
+
+        save_confusion_matrix(train_labels, train_preds, train_dataset.classes,
+                              f'confusion_matrix_train_epoch')
+
+        # Calculate validation accuracy, loss, and confusion matrix
+        val_accuracy, val_preds, val_labels = evaluate_model(
+            model, val_loader, device)
+        val_loss = criterion(model(torch.FloatTensor(val_dataset[0][0].unsqueeze(
+            0).to(device))).detach(), torch.LongTensor([val_dataset[0][1]]).to(device))
+        val_loss_history.append(val_loss.item())
+
+        save_confusion_matrix(
+            val_labels, val_preds, val_dataset.classes, f'confusion_matrix_val_epoch')
 
         print(
-            f'Epoch [{epoch + 1}/{num_epochs}], Loss: {running_loss / len(train_loader):.4f}')
+            f'Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}')
         print(
             f'Epoch [{epoch + 1}/{num_epochs}], Train Accuracy: {train_accuracy:.4f}, Validation Accuracy: {val_accuracy:.4f}')
+
+    return train_loss_history, val_loss_history
+
+# Function to plot and save loss history
+
+
+def plot_loss_history(train_loss_history, val_loss_history):
+    plt.figure()
+    plt.plot(train_loss_history, label='Train Loss')
+    plt.plot(val_loss_history, label='Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss History')
+    plt.legend()
+    plt.savefig('loss_history.png')
+    plt.close()
 
 
 # Initialize the model
@@ -90,10 +133,13 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs=10, 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
 
-# Train the model and check accuracy at each epoch
-train(model, train_loader, val_loader, criterion,
-      optimizer, num_epochs=10, device=device)
+# Train the model and get the loss history
+train_loss_history, val_loss_history = train(
+    model, train_loader, val_loader, criterion, optimizer, num_epochs=10, device=device)
 
-# Save the model
-torch.save(model.state_dict(), 'model.pth')
-print('Model saved as model.pth')
+# Plot and save the loss history
+plot_loss_history(train_loss_history, val_loss_history)
+
+# Save the trained model
+torch.save(model.state_dict(), 'model_dnn_2.pth')
+print('Model saved as model_dnn.pth')
