@@ -82,8 +82,8 @@ multiclass-prediction-pytorch/
 ├── image_scrapper.ipnb         # Scrapping desired images
 ├── train.py                    # Script to train the model
 ├── test.py                     # Script to test the model
-├── filter.py                   # Script for auto-labeling images
-├── requirements.txt            # Required Python packages
+├── filter_train.py             # Script for train images with small dataset
+├── filter_test.py              # Script for auto-labeling images with trained dataset
 ├── Dockerfile                  # Dockerfile for the PyTorch environment
 ├── docker-compose.yml          # Docker Compose configuration
 └── README.md                   # Project documentation
@@ -100,8 +100,3 @@ The Dockerfile sets up a PyTorch environment with the necessary dependencies. Yo
 ### docker-compose.yml
 
 The Docker Compose configuration helps you manage multi-container applications. It is designed to run the application seamlessly in a containerized environment.
-
-## License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
-```
