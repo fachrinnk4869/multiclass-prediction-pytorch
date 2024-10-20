@@ -11,17 +11,25 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define transforms (same as during training)
 data_transforms = transforms.Compose([
-    # Resize images to match training dimensions
-    transforms.Resize((128, 128)),
-    transforms.ToTensor(),
-    # Adjust normalization based on your training data
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    transforms.Resize((128, 128)),           # Resize images to 128x128
+    # Randomly flip images horizontally
+    transforms.RandomHorizontalFlip(p=0.5),
+    # Randomly rotate images by +/- 15 degrees
+    transforms.RandomRotation(degrees=15),
+    # Randomly adjust color properties
+    transforms.ColorJitter(brightness=0.2, contrast=0.2,
+                           saturation=0.2, hue=0.1),
+    transforms.ToTensor(),                   # Convert images to PyTorch tensors
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)
+                         )  # Normalize to [-1, 1]
 ])
 
 # Load the trained model
 num_classes = 3  # Update this to match your model's number of output classes
 model = TestModel(num_classes)  # Initialize your TestModel
-model.load_state_dict(torch.load('model_dnn_fix.pth'))  # Load trained weights
+# Load trained weights
+model.load_state_dict(torch.load('model_cnn_exp3_acc0.7547.pth'))
+# model.load_state_dict(torch.load('model_dnn_exp5_acc0.6604.pth'))
 model = model.to(device)
 model.eval()  # Set model to evaluation mode
 
@@ -29,12 +37,12 @@ model.eval()  # Set model to evaluation mode
 class_names = ['apel', 'pepaya', 'pisang']  # Update according to your classes
 
 # Define the confidence threshold
-threshold = 0.8  # You can adjust this value based on your requirements
+threshold = 0.5  # You can adjust this value based on your requirements
 
 # Folder paths
 # Path to the folder containing test images
-test_images_dir = 'fix_data/apel_fix'
-output_dir = 'results'  # Folder to store sorted images
+test_images_dir = 'fix_data/test/pisang_fix'
+output_dir = 'results_cnn_pisang'  # Folder to store sorted images
 
 # Create output directories for classes and unlabeled
 for class_name in class_names:

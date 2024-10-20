@@ -67,6 +67,12 @@ python filter_test.py
 
 The currently achieved accuracy of the model is **Epoch [10/10], Train Accuracy: 0.9765, Validation Accuracy: 0.6887**.
 
+Epoch [10/10], Train Accuracy: 0.6836, Validation Accuracy: 0.6020
+Test Accuracy: 0.6604
+
+Epoch [30/30], Train Accuracy: 0.7882, Validation Accuracy: 0.5918
+Test Accuracy: 0.6226
+
 ## File Structure
 
 ```
